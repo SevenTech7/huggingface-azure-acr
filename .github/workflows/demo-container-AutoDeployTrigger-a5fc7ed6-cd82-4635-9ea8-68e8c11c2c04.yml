@@ -1,0 +1,45 @@
+name: Trigger auto deployment for demo-container
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ main ]
+    paths:
+    - '//**'
+    - '.github/workflows/demo-container-AutoDeployTrigger-a5fc7ed6-cd82-4635-9ea8-68e8c11c2c04.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.DEMOCONTAINER_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.DEMOCONTAINER_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.DEMOCONTAINER_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          appSourcePath: ${{ github.workspace }} 
+          registryUrl: demojhulenreserva.azurecr.io
+          registryUsername: ${{ secrets.DEMOCONTAINER_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.DEMOCONTAINER_REGISTRY_PASSWORD }}
+          containerAppName: demo-container
+          resourceGroup: demo-container
+          imageToBuild: demojhulenreserva.azurecr.io/demo-container:${{ github.sha }}
+          dockerfilePath: Dockerfile
+
+
